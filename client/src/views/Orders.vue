@@ -5,6 +5,36 @@
       <p>{{ t('orders.description') }}</p>
     </div>
 
+    <!-- Pinned restocking orders section -->
+    <div v-if="restockingOrders.length > 0" class="card restocking-card">
+      <div class="card-header">
+        <h3 class="card-title">Submitted Restocking Orders</h3>
+        <span class="restocking-count">{{ restockingOrders.length }} order{{ restockingOrders.length !== 1 ? 's' : '' }}</span>
+      </div>
+      <div class="restocking-scroll-row">
+        <div
+          v-for="ro in restockingOrders"
+          :key="ro.id"
+          class="restocking-order-card"
+        >
+          <div class="ro-id">{{ ro.id }}</div>
+          <div class="ro-meta">{{ ro.items.length }} item{{ ro.items.length !== 1 ? 's' : '' }}</div>
+          <div class="ro-cost">{{ currencySymbol }}{{ ro.total_cost.toLocaleString() }}</div>
+          <div class="ro-dates">
+            <span class="ro-date-label">Submitted:</span>
+            <span>{{ formatDate(ro.submitted_at) }}</span>
+          </div>
+          <div class="ro-dates">
+            <span class="ro-date-label">ETA:</span>
+            <span>{{ formatDate(ro.expected_delivery) }}</span>
+          </div>
+          <div class="ro-status">
+            <span class="badge submitted">Submitted</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div v-if="loading" class="loading">{{ t('common.loading') }}</div>
     <div v-else-if="error" class="error">{{ error }}</div>
     <div v-else>
@@ -95,6 +125,7 @@ export default {
     const loading = ref(true)
     const error = ref(null)
     const orders = ref([])
+    const restockingOrders = ref([])
 
     // Use shared filters
     const {
@@ -153,13 +184,25 @@ export default {
       })
     }
 
-    onMounted(loadOrders)
+    const loadRestockingOrders = async () => {
+      try {
+        restockingOrders.value = await api.getRestockingOrders()
+      } catch (err) {
+        console.error('Failed to load restocking orders:', err)
+      }
+    }
+
+    onMounted(() => {
+      loadOrders()
+      loadRestockingOrders()
+    })
 
     return {
       t,
       loading,
       error,
       orders,
+      restockingOrders,
       getOrdersByStatus,
       getOrderStatusClass,
       formatDate,
@@ -275,5 +318,90 @@ export default {
 .item-meta {
   font-size: 0.813rem;
   color: #64748b;
+}
+
+/* Restocking orders section */
+.restocking-card {
+  margin-bottom: 1.25rem;
+}
+
+.restocking-count {
+  font-size: 0.813rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.restocking-scroll-row {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+
+.restocking-scroll-row::-webkit-scrollbar {
+  height: 4px;
+}
+
+.restocking-scroll-row::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 2px;
+}
+
+.restocking-scroll-row::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 2px;
+}
+
+.restocking-order-card {
+  flex: 0 0 auto;
+  min-width: 200px;
+  max-width: 220px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.ro-id {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #0f172a;
+  word-break: break-all;
+}
+
+.ro-meta {
+  font-size: 0.813rem;
+  color: #64748b;
+}
+
+.ro-cost {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.ro-dates {
+  font-size: 0.75rem;
+  color: #64748b;
+  display: flex;
+  gap: 0.25rem;
+}
+
+.ro-date-label {
+  font-weight: 600;
+  color: #475569;
+}
+
+.ro-status {
+  margin-top: 0.25rem;
+}
+
+.badge.submitted {
+  background: #ede9fe;
+  color: #5b21b6;
 }
 </style>

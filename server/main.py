@@ -3,6 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Optional
 from pydantic import BaseModel
 from mock_data import inventory_items, orders, demand_forecasts, backlog_items, spending_summary, monthly_spending, category_spending, recent_transactions, purchase_orders
+import uuid
+from datetime import datetime, timedelta
 
 app = FastAPI(title="Factory Inventory Management System")
 
@@ -119,6 +121,28 @@ class CreatePurchaseOrderRequest(BaseModel):
     unit_cost: float
     expected_delivery_date: str
     notes: Optional[str] = None
+
+class RestockingOrderItem(BaseModel):
+    sku: str
+    name: str
+    quantity: int
+    unit_cost: float
+    total_cost: float
+
+class CreateRestockingOrderRequest(BaseModel):
+    items: List[RestockingOrderItem]
+    total_cost: float
+
+class RestockingOrder(BaseModel):
+    id: str
+    items: List[RestockingOrderItem]
+    total_cost: float
+    submitted_at: str
+    expected_delivery: str
+    status: str
+
+# In-memory store for restocking orders
+restocking_orders_store: list = []
 
 # API endpoints
 @app.get("/")
@@ -303,6 +327,24 @@ def get_monthly_trends():
     result = list(months.values())
     result.sort(key=lambda x: x['month'])
     return result
+
+@app.post("/api/restocking-orders", response_model=RestockingOrder)
+def create_restocking_order(request: CreateRestockingOrderRequest):
+    now = datetime.utcnow()
+    order = {
+        "id": f"RST-{str(uuid.uuid4())[:8].upper()}",
+        "items": [item.model_dump() for item in request.items],
+        "total_cost": request.total_cost,
+        "submitted_at": now.strftime("%Y-%m-%d"),
+        "expected_delivery": (now + timedelta(days=14)).strftime("%Y-%m-%d"),
+        "status": "Submitted"
+    }
+    restocking_orders_store.append(order)
+    return order
+
+@app.get("/api/restocking-orders", response_model=List[RestockingOrder])
+def get_restocking_orders():
+    return restocking_orders_store
 
 if __name__ == "__main__":
     import uvicorn

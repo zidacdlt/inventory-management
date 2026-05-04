@@ -78,6 +78,7 @@ On macOS/Linux, `./scripts/start.sh` starts both servers. Windows requires two s
 
 ## Key Constraints
 
+- Always document non-obvious logic changes with comments
 - Revenue goals hard-coded: $800K/month (single warehouse), $9.6M YTD (all months)
 - Always use unique `v-for` keys (`sku`, `month`, etc.) — never `index`
 - Validate dates before calling `.getMonth()` — API dates can be null
